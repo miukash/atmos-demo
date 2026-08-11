@@ -3,6 +3,7 @@
 VENV := .venv
 PYTHON := $(VENV)/bin/python
 PIP := $(VENV)/bin/pip
+DATA_PATH ?= ../../data/data/raw_data_jan
 
 setup:
 	python3 -m venv $(VENV)
@@ -19,7 +20,7 @@ down:
 	docker compose down
 
 run:
-	PYTHONPATH=./exporter_app/src/ $(PYTHON) ./exporter_app/src/cmd/atmosdemo.py
+	DATA_PATH=$(DATA_PATH) PYTHONPATH=./exporter_app/src/ $(PYTHON) ./exporter_app/src/cmd/atmosdemo.py
 
 test:
 	PYTHONPATH=./exporter_app/src/ $(PYTHON) -m pytest

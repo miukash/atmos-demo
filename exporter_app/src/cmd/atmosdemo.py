@@ -1,3 +1,5 @@
+import os
+from pathlib import Path
 from queue import Queue
 from pkg.infra.influxDB.influxdb_exporter import InfluxDBExporter
 from pkg.infra.pkl.pkl_importer import PklImporter
@@ -9,8 +11,8 @@ from pkg.converter.otel_converter import Converter
 
 if __name__ == "__main__":
 
-    
-    data_path = "../../data/data/raw_data_jan"
+    project_root = Path(__file__).resolve().parents[3]
+    data_path = os.getenv("DATA_PATH", str(project_root / "data" / "data" / "raw_data_jan"))
     # log_file_path = "../data/logs/promtail.log"
 
     usecase = ReplayTelemetryUseCase(
