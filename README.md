@@ -126,7 +126,7 @@ pip install -r requirements.txt
 (Optional) Run unit tests.
 
 ```bash
-pytest
+PYTHONPATH=. pytest
 ```
 
 ---

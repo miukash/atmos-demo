@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: telemetry-reader
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: telemetry-reader
+  template:
+    metadata:
+      labels:
+        app: telemetry-reader
+    spec:
+      containers:
+        - name: reader
+          image: python:3.11
+          command: ["sleep", "3600"]
+          volumeMounts:
+            - mountPath: /mnt/data
+              name: telemetry-data
+            - mountPath: /mnt/python_code
+              name: python-code
+      volumes:
+        - name: telemetry-data
+          hostPath:
+            path: /mnt/data
+            type: Directory
+        - name: python-code
+          hostPath: 
+            path: /mnt/python_code
+            type: Directory

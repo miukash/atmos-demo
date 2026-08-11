@@ -1,0 +1,3 @@
+Prometheus:
+  prometheusSpec:
+    serviceMonitorNamespaceSelector: {}
