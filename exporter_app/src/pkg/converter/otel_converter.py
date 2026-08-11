@@ -1,7 +1,44 @@
 # domain service
 
+from datetime import date, datetime, timezone
+
 from pkg.domain import OtelData
 import numpy as np
+
+
+def _normalize_timestamp(value):
+    if isinstance(value, np.datetime64):
+        return value
+    if isinstance(value, str):
+        normalized = value.strip()
+        if normalized.endswith(("Z", "z")):
+            normalized = normalized[:-1]
+        if normalized.endswith("+00:00"):
+            normalized = normalized[:-6]
+        if normalized.endswith("-00:00"):
+            normalized = normalized[:-6]
+        try:
+            return np.datetime64(normalized)
+        except ValueError:
+            return np.datetime64(normalized.replace(" ", "T"))
+    if isinstance(value, datetime):
+        if value.tzinfo is not None:
+            value = value.astimezone(timezone.utc).replace(tzinfo=None)
+        return np.datetime64(value)
+    if isinstance(value, date):
+        return np.datetime64(value)
+    if hasattr(value, "to_pydatetime"):
+        try:
+            value = value.to_pydatetime()
+            if isinstance(value, datetime):
+                if value.tzinfo is not None:
+                    value = value.astimezone(timezone.utc).replace(tzinfo=None)
+                return np.datetime64(value)
+            if isinstance(value, date):
+                return np.datetime64(value)
+        except Exception:
+            return None
+    return None
 
 
 class Converter: 
@@ -12,7 +49,8 @@ class Converter:
 
     def convert(self, event, target_index) -> OtelData:
 
-        self.timestamps.append(event["TimeStamp"])
+        event_timestamp = _normalize_timestamp(event["TimeStamp"])
+        self.timestamps.append(event_timestamp)
         self.values.append(event[target_index])
 
         # Remove old data outside the time window
@@ -40,7 +78,7 @@ class Converter:
             noise_spectrum = list(noise_spectrum)
 
         otel_data = OtelData(
-            event_timestamp=event["TimeStamp"],
+            event_timestamp=event_timestamp,
             event_timelag_min=None,
             value=event[target_index],
             average=average,

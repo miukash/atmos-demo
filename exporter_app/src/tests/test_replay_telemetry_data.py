@@ -44,17 +44,25 @@ class TestReplayTelemetryUseCase:
 
         assert exporter.execute() == False
 
+    def test_worker_start_is_idempotent(self):
+        worker = Worker(MagicMock(), MagicMock())
+
+        worker.start()
+        worker.start()
+        worker.stop()
+        worker.join(timeout=1)
+
     @patch('pkg.usecase.replay_telemetry_data.Worker.now')
     def test_export_worker(self, mock_np_datetime64_now):
 
         enqueued_data = domain.OtelData(
-            event_timestamp=np.datetime64("2024-05-01T15:00:00Z"),
+            event_timestamp=np.datetime64("2024-05-01T15:00:00"),
             event_timelag_min=0,
             value=10,
             average=10,
             std=0
         )
-        mock_np_datetime64_now.return_value = np.datetime64("2024-05-01T15:05:00Z")
+        mock_np_datetime64_now.return_value = np.datetime64("2024-05-01T15:05:00")
         
         
         mock_importer = MagicMock()

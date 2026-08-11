@@ -1,73 +1,48 @@
 # Atmos Demo
 
-Python Exporter for replaying telemetry data and visualizing it with InfluxDB and Grafana.
+A telemetry replay and visualization environment for the Atmos system.
 
----
+This project replays telemetry data from PKL files, exports the data to InfluxDB, and visualizes it with Grafana.
 
-# Overview
-
-Atmos Demo replays telemetry data from PKL files, converts the data into time-series metrics, stores them in InfluxDB, and visualizes them with Grafana.
-
----
-
-# Architecture
+## Architecture
 
 ```text
 Telemetry Data (PKL)
         │
         ▼
-Python Exporter
+ Python Exporter
         │
         ▼
-InfluxDB
+    InfluxDB
         │
         ▼
-Grafana Dashboard
+     Grafana
 ```
 
----
+## Prerequisites
 
-# Prerequisites
+* Git
+* Python 3.12 or later
+* Docker
+* Docker Compose
 
-- Git
-- Python 3.12 or later
-- Docker
+### Windows / WSL
 
----
+Docker Desktop for Windows is required.
 
-# Setup
+Enable **WSL 2 Integration** in Docker Desktop.
 
-## 1. Install Docker
-
-### Windows
-
-Install **Docker Desktop for Windows**.
-
+Docker Desktop:
 https://www.docker.com/products/docker-desktop/
 
-After installation, ensure that Docker Desktop is running and **WSL 2 Integration** is enabled.
-
-Verify the installation.
+Verify the installation:
 
 ```bash
 docker --version
 docker compose version
 ```
 
-### macOS
-
-Install **Docker Desktop for Mac**.
-
-https://www.docker.com/products/docker-desktop/
-
-Verify the installation.
-
-```bash
-docker --version
-docker compose version
-```
-
-### Linux (Ubuntu)
+### Linux
 
 Install Docker Engine and Docker Compose.
 
@@ -76,172 +51,192 @@ sudo apt update
 sudo apt install docker.io docker-compose-plugin
 ```
 
-Verify the installation.
+Verify:
 
 ```bash
 docker --version
 docker compose version
 ```
 
----
+## Getting Started
 
-## 2. Clone Repository
+### 1. Clone the repository
 
 ```bash
-mkdir atmosdemo
-cd atmosdemo
-git clone <repository-url> src
-cd src
+git clone <repository-url>
+cd atmos-demo
 ```
 
----
+### 2. Prepare telemetry data
 
-## 3. Prepare Telemetry Data
+Place the telemetry PKL files under the `data/` directory.
 
-Copy the telemetry data from the USB storage into the `data` directory.
-
-```bash
-scp -r /path/to/telemetry/ ../data
+```text
+data/
+└── *.pkl
 ```
 
----
+The telemetry data is not included in this repository.
 
-## 4. Create a Python Virtual Environment
-
-### Linux / WSL
+### 3. Create the Python environment
 
 ```bash
-python -m venv .venv
+make setup
+```
+
+This creates a Python virtual environment and installs the required dependencies.
+
+Activate the environment:
+
+```bash
 source .venv/bin/activate
 ```
 
----
-
-## 5. Install Python Dependencies
+### 4. Start InfluxDB and Grafana
 
 ```bash
-pip install -r requirements.txt
+make up
 ```
 
-(Optional) Run unit tests.
+Check the running containers:
 
 ```bash
-PYTHONPATH=. pytest
+docker compose ps
 ```
 
----
 
-## 6. Start InfluxDB and Grafana
+### 5. Configure Grafana
 
-### Using Docker Compose (Recommended)
-
-```bash
-docker compose up -d
-```
-
-Verify that the containers are running.
-
-```bash
-docker ps
-```
-
-Stop the containers.
-
-```bash
-docker compose down
-```
-
-### Without Docker Compose
-
-#### Pull Images
-
-```bash
-docker pull influxdb:2
-docker pull grafana/grafana:latest
-```
-
-#### Start InfluxDB
-
-```bash
-docker run -d \
-  --name influxdb \
-  -p 8086:8086 \
-  influxdb:2
-```
-
-#### Start Grafana
-
-```bash
-docker run -d \
-  --name grafana \
-  -p 3000:3000 \
-  grafana/grafana:latest
-```
-
----
-
-## 7. Run the Exporter
-
-```bash
-python cmd/atmosdemo.py
-```
-
----
-
-## 8. Access Grafana and InfluxDB
-
-### Grafana
-
-URL
-
-```
-http://localhost:3000
-```
-
-Default credentials
-
-```
-Username: admin
-Password: admin
-```
-
-### InfluxDB
-
-URL
-
-```
-http://localhost:8086
-```
-
-If this is your first launch, complete the initial InfluxDB setup.
-
----
-
-## 9. Configure Grafana Dashboard
-
-1. Add InfluxDB as a data source.
-2. Import the dashboard from the `dashboards/` directory.
-3. Start the exporter.
-4. Confirm that telemetry data is displayed on the dashboard.
-
----
-
-# Project Structure
+Open:
 
 ```text
-AtmosDemo/
-├── src/
-│   ├── README.md
-│   ├── cmd/
-│   │   ├── atmosdemo.py
-│   │   └── atmosdemo_ns.py
-│   ├── pkg/
-│   │   ├── converter/
-│   │   ├── infra/
-│   │   ├── queue/
-│   │   └── usecase/
-│   ├── tests/
-│   ├── requirements.txt
-│   └── docker-compose.yml
-└── data/
+http://localhost:3000
+
+pass: admin
+user: admin
+```
+
+Configure an InfluxDB data source with:
+
+```text
+Query language: Flux
+URL:            
+Organization:   atmos
+Bucket:         telemetry
+Token:          atmos-token
+```
+
+### 6. Run the Exporter
+
+```bash
+make run
+```
+
+The exporter reads telemetry data from the `data/` directory and writes it to InfluxDB.
+
+The telemetry data can then be visualized in Grafana.
+
+## Grafana Query Example
+set timezone as 2024-01-01 13:46:47 to 2024-01-11 17:46:47
+
+
+The following Flux query displays the `average` field:
+
+```flux
+from(bucket: "telemetry")
+  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+  |> filter(fn: (r) =>
+    r._measurement == "telemetry" and
+    r._field == "average"
+  )
+  |> aggregateWindow(
+    every: v.windowPeriod,
+    fn: mean,
+    createEmpty: false
+  )
+```
+
+
+For the standard deviation:
+
+```flux
+from(bucket: "telemetry")
+  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+  |> filter(fn: (r) =>
+    r._measurement == "telemetry" and
+    r._field == "std"
+  )
+  |> aggregateWindow(
+    every: v.windowPeriod,
+    fn: mean,
+    createEmpty: false
+  )
+```
+
+## Development
+
+### Run tests
+
+```bash
+make test
+```
+
+### Stop services
+
+```bash
+make down
+```
+
+
+## Project Structure
+
+```text
+atmos_demo/
+├── Makefile
+├── README.md
+├── docker-compose.yml
+├── requirements.txt
+├── data/
+└── src/
+    └── cmd/
+        └── atmosdemo.py
+```
+
+## Make Commands
+
+| Command        | Description                                                    |
+| -------------- | -------------------------------------------------------------- |
+| `make setup`   | Create the Python virtual environment and install dependencies |
+| `make install` | Install Python dependencies                                    |
+| `make up`      | Start InfluxDB and Grafana                                     |
+| `make down`    | Stop InfluxDB and Grafana                                      |
+| `make run`     | Start the Python Exporter                                      |
+| `make test`    | Run unit tests                                                 |
+| `make build`   | Build the Analysis Docker image                                |
+| `make shell`   | Open a shell in the Analysis Docker image                      |
+
+## Additional Commands
+
+Start Grafana only:
+
+```bash
+make up-grafana
+```
+
+Start InfluxDB only:
+
+```bash
+make up-influxdb
+```
+
+Stop the services:
+
+```bash
+make down
+```
+
+To completely reset the environment, including InfluxDB and Grafana data:
+
+```bash
+docker compose down -v
 ```

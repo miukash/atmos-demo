@@ -5,14 +5,14 @@ class TestConverter:
     def test_convert(self):
         
         event = {
-            "TimeStamp": np.datetime64("2024-05-01T15:00:00Z"),
+            "TimeStamp": np.datetime64("2024-05-01T15:00:00"),
             "value": 40
         }
 
         past_timestamps = [
-            np.datetime64('2024-05-01T12:00:00Z'),
-            np.datetime64('2024-05-01T13:00:00Z'),
-            np.datetime64('2024-05-01T14:00:00Z')
+            np.datetime64('2024-05-01T12:00:00'),
+            np.datetime64('2024-05-01T13:00:00'),
+            np.datetime64('2024-05-01T14:00:00')
         ] 
         past_values = [10, 20, 30]
 
@@ -28,6 +28,18 @@ class TestConverter:
         assert otel_data.value == event["value"]
         assert otel_data.average == np.mean(expected_values)
         assert otel_data.std == np.std(expected_values)
+
+    def test_convert_normalizes_timezone_suffix(self):
+        converter = Converter(time_window_min=10)
+        event = {
+            "TimeStamp": "2024-05-01T15:00:00Z",
+            "value": 40
+        }
+
+        otel_data = converter.convert(event, target_index="value")
+
+        assert otel_data.event_timestamp == np.datetime64("2024-05-01T15:00:00")
+        assert otel_data.value == 40
 
     # def test_convert_with_noise_spectrum(self):
     #     event = {

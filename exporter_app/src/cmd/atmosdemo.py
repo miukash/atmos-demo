@@ -9,7 +9,8 @@ from pkg.converter.otel_converter import Converter
 
 if __name__ == "__main__":
 
-    data_path = "../data/raw_data_jan"
+    
+    data_path = "../../data/data/raw_data_jan"
     # log_file_path = "../data/logs/promtail.log"
 
     usecase = ReplayTelemetryUseCase(
@@ -18,9 +19,9 @@ if __name__ == "__main__":
         ),
         exporter=InfluxDBExporter(
             url="http://localhost:8086",
-            token="yiWQres-JdWOZaNxSyd-UhVdA3hDh0JWyCOuiFYdg1lnzwyGTkXet5s_m-atPFMU5LyhzwCX5hugvB-zZNgYhw==",
-            org="personal",
-            bucket="personal"
+            token="atmos-token",
+            org="atmos",
+            bucket="telemetry"
         ),
         converter=Converter(
             time_window_min=5

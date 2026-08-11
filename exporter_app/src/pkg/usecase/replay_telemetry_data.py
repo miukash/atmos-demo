@@ -1,11 +1,11 @@
 import threading
 import time
+from datetime import datetime
 
 from pkg.domain import ImporterAdapter
 from pkg.domain import ExporterAdapter
 from pkg.domain import Queue
-from pkg.converter.otel_converter import Converter
-from datetime import datetime
+from pkg.converter.otel_converter import Converter, _normalize_timestamp
 import numpy as np
 
 import logging
@@ -63,15 +63,23 @@ class Worker(threading.Thread):
         self.exporter = exporter
 
         self._stop_event = threading.Event()
+        self._worker_started = False
+
+    def start(self):
+        if self._worker_started:
+            return
+        self._worker_started = True
+        super().start()
 
     def run(self):
         while not self._stop_event.is_set():
             try:
                 otel_data = self.queue.dequeue()
                 if otel_data is not None:
-                    otel_data.event_timelag_min = (self.now() - otel_data.event_timestamp) / np.timedelta64(1, 'm')
+                    event_timestamp = _normalize_timestamp(otel_data.event_timestamp)
+                    otel_data.event_timelag_min = (self.now() - event_timestamp) / np.timedelta64(1, 'm')
                     self.exporter.export(otel_data)
-                    log.info(f"Exported OTel data")
+                    log.info("Exported OTel data")
                 else:
                     time.sleep(2)  
             except Exception as e:
